@@ -2,22 +2,15 @@ package org.mtransit.parser.ca_laurentides_linter_bus;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mtransit.parser.CleanUtils;
+import org.mtransit.commons.CharUtils;
+import org.mtransit.commons.CleanUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.Utils;
-import org.mtransit.parser.gtfs.data.GCalendar;
-import org.mtransit.parser.gtfs.data.GCalendarDate;
 import org.mtransit.parser.gtfs.data.GRoute;
-import org.mtransit.parser.gtfs.data.GSpec;
 import org.mtransit.parser.gtfs.data.GStop;
-import org.mtransit.parser.gtfs.data.GTrip;
 import org.mtransit.parser.mt.data.MAgency;
-import org.mtransit.parser.mt.data.MDirectionType;
 import org.mtransit.parser.mt.data.MRoute;
-import org.mtransit.parser.mt.data.MTrip;
 
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,55 +18,19 @@ import java.util.regex.Pattern;
 // https://www.transportlaurentides.ca/wp-content/uploads/gtfs/taclgtfs.zip
 public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 
-	public static void main(@Nullable String[] args) {
-		if (args == null || args.length == 0) {
-			args = new String[3];
-			args[0] = "input/gtfs.zip";
-			args[1] = "../../mtransitapps/ca-laurentides-linter-bus-android/res/raw/";
-			args[2] = ""; // files-prefix
-		}
+	public static void main(@NotNull String[] args) {
 		new LaurentidesLInterBusAgencyTools().start(args);
 	}
 
-	@Nullable
-	private HashSet<Integer> serviceIdInts;
-
 	@Override
-	public void start(@NotNull String[] args) {
-		MTLog.log("Generating L'Inter (TaCL) bus data...");
-		long start = System.currentTimeMillis();
-		this.serviceIdInts = extractUsefulServiceIdInts(args, this, true);
-		super.start(args);
-		MTLog.log("Generating L'Inter (TaCL) bus data... DONE in %s.", Utils.getPrettyDuration(System.currentTimeMillis() - start));
+	public boolean defaultExcludeEnabled() {
+		return true;
 	}
 
+	@NotNull
 	@Override
-	public boolean excludingAll() {
-		return this.serviceIdInts != null && this.serviceIdInts.isEmpty();
-	}
-
-	@Override
-	public boolean excludeCalendar(@NotNull GCalendar gCalendar) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessCalendarInt(gCalendar, this.serviceIdInts);
-		}
-		return super.excludeCalendar(gCalendar);
-	}
-
-	@Override
-	public boolean excludeCalendarDate(@NotNull GCalendarDate gCalendarDates) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessCalendarDateInt(gCalendarDates, this.serviceIdInts);
-		}
-		return super.excludeCalendarDate(gCalendarDates);
-	}
-
-	@Override
-	public boolean excludeTrip(@NotNull GTrip gTrip) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessTripInt(gTrip, this.serviceIdInts);
-		}
-		return super.excludeTrip(gTrip);
+	public String getAgencyName() {
+		return "L'Inter (TaCL)";
 	}
 
 	@NotNull
@@ -86,7 +43,7 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	public long getRouteId(@NotNull GRoute gRoute) {
 		//noinspection deprecation
 		final String routeId = gRoute.getRouteId();
-		if (!Utils.isDigitsOnly(routeId)) {
+		if (!CharUtils.isDigitsOnly(routeId)) {
 			if ("ZCN".equals(routeId) //
 					|| "ZCS".equals(routeId)) {
 				return 1_003L;
@@ -135,36 +92,13 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) {
-		final String tripHeadsign = gTrip.getTripHeadsignOrDefault();
-		if (gTrip.getDirectionId() == null) {
-			if (tripHeadsign.endsWith(" (Sud)")) {
-				mTrip.setHeadsignString( //
-						cleanTripHeadsign(tripHeadsign), //
-						MDirectionType.SOUTH.intValue());
-				return;
-			}
-			if (tripHeadsign.endsWith(" (Nord)")) {
-				mTrip.setHeadsignString( //
-						cleanTripHeadsign(tripHeadsign), //
-						MDirectionType.NORTH.intValue());
-				return;
-			}
-		}
-		mTrip.setHeadsignString(
-				cleanTripHeadsign(tripHeadsign),
-				gTrip.getDirectionId() == null ? 0 : gTrip.getDirectionId() // TODO gTrip.getDirectionIdOrDefault()
-		);
+	public boolean directionSplitterEnabled() {
+		return true;
 	}
 
 	@Override
 	public boolean directionFinderEnabled() {
-		return false; // DISABLED because direction_id NOT provided (& 2 routes = 1 route w/ 2 directions)
-	}
-
-	@Override
-	public boolean mergeHeadsign(@NotNull MTrip mTrip, @NotNull MTrip mTripToMerge) {
-		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
+		return true;
 	}
 
 	@NotNull
@@ -188,16 +122,16 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public int getStopId(@NotNull GStop gStop) {
-		String stopCode = getStopCode(gStop);
-		if (stopCode.length() > 0 & Utils.isDigitsOnly(stopCode)) {
+		final String stopCode = getStopCode(gStop);
+		if (stopCode.length() > 0 & CharUtils.isDigitsOnly(stopCode)) {
 			return Integer.parseInt(stopCode); // using stop code as stop ID
 		}
 		//noinspection deprecation
 		final String stopId1 = gStop.getStopId();
-		Matcher matcher = DIGITS.matcher(stopCode);
+		final Matcher matcher = DIGITS.matcher(stopCode);
 		if (matcher.find()) {
-			int digits = Integer.parseInt(matcher.group());
-			int stopId;
+			final int digits = Integer.parseInt(matcher.group());
+			final int stopId;
 			if (stopCode.endsWith("N")) {
 				stopId = 140_000;
 			} else {
