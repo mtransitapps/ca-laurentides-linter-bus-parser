@@ -1,5 +1,7 @@
 package org.mtransit.parser.ca_laurentides_linter_bus;
 
+import static org.mtransit.commons.RegexUtils.DIGITS;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mtransit.commons.CharUtils;
@@ -11,6 +13,7 @@ import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.mt.data.MAgency;
 import org.mtransit.parser.mt.data.MRoute;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +30,12 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 		return true;
 	}
 
+	@Nullable
+	@Override
+	public List<Locale> getSupportedLanguages() {
+		return LANG_FR;
+	}
+
 	@NotNull
 	@Override
 	public String getAgencyName() {
@@ -40,33 +49,44 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public long getRouteId(@NotNull GRoute gRoute) {
-		//noinspection deprecation
-		final String routeId = gRoute.getRouteId();
-		if (!CharUtils.isDigitsOnly(routeId)) {
-			if ("ZCN".equals(routeId) //
-					|| "ZCS".equals(routeId)) {
-				return 1_003L;
-			} else if ("ZNN".equals(routeId) //
-					|| "ZNS".equals(routeId)) {
-				return 1_014L;
-			}
-			throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
-		}
-		return super.getRouteId(gRoute);
+	public boolean defaultRouteIdEnabled() {
+		return true;
+	}
+
+	@Override
+	public boolean useRouteShortNameForRouteId() {
+		return false;
 	}
 
 	@Nullable
 	@Override
+	public Long convertRouteIdFromShortNameNotSupported(@NotNull String routeShortName) {
+		switch(routeShortName) {
+			case "ZC":
+			case "ZCN":
+			case "ZCS":
+				return 1_003L;
+			case "ZN":
+			case "ZNN":
+			case "ZNS":
+				return 1_014L;
+
+		}
+		return super.convertRouteIdFromShortNameNotSupported(routeShortName);
+	}
+
+	@NotNull
+	@Override
 	public String getRouteShortName(@NotNull GRoute gRoute) {
 		//noinspection deprecation
 		final String routeId = gRoute.getRouteId();
-		if ("ZCN".equals(routeId) //
-				|| "ZCS".equals(routeId)) {
-			return "ZC";
-		} else if ("ZNN".equals(routeId) //
-				|| "ZNS".equals(routeId)) {
-			return "ZN";
+		switch(routeId) {
+			case "ZCN":
+			case "ZCS":
+				return "ZC";
+			case "ZNN":
+			case "ZNS":
+				return "ZN";
 		}
 		throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
 	}
@@ -81,6 +101,11 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 			return true;
 		}
 		return super.mergeRouteLongName(mRoute, mRouteToMerge);
+	}
+
+	@Override
+	public boolean defaultAgencyColorEnabled() {
+		return true;
 	}
 
 	private static final String AGENCY_COLOR = "E76525"; // ORANGE (from web site)
@@ -117,8 +142,6 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 		gStopName = CleanUtils.cleanStreetTypesFRCA(gStopName);
 		return CleanUtils.cleanLabelFR(gStopName);
 	}
-
-	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
 
 	@Override
 	public int getStopId(@NotNull GStop gStop) {
