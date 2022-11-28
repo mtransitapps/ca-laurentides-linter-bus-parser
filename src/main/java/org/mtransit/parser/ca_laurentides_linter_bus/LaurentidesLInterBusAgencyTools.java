@@ -18,7 +18,6 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// https://www.transportlaurentides.ca/wp-content/uploads/gtfs/taclgtfs.zip
 public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 
 	public static void main(@NotNull String[] args) {
@@ -160,6 +159,10 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 			} else {
 				if (stopId1.endsWith("S")) {
 					stopId = 190_000;
+				} else if (stopId1.endsWith("S-ANM")) {
+					stopId = 1_190_000;
+				} else if (stopId1.endsWith("ANM")) {
+					stopId = 1_140_000;
 				} else {
 					throw new MTLog.Fatal("Stop doesn't have an ID (end with) %s!", gStop);
 				}
