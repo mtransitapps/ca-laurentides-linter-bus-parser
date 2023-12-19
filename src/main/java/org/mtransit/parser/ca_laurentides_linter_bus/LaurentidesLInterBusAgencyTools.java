@@ -16,7 +16,6 @@ import org.mtransit.parser.mt.data.MRoute;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 
@@ -52,6 +51,7 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 		return true;
 	}
 
+	@SuppressWarnings("RedundantMethodOverride")
 	@Override
 	public boolean useRouteShortNameForRouteId() {
 		return false;
@@ -60,15 +60,15 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	@Nullable
 	@Override
 	public Long convertRouteIdFromShortNameNotSupported(@NotNull String routeShortName) {
-		switch(routeShortName) {
-			case "ZC":
-			case "ZCN":
-			case "ZCS":
-				return 1_003L;
-			case "ZN":
-			case "ZNN":
-			case "ZNS":
-				return 1_014L;
+		switch (routeShortName) {
+		case "ZC":
+		case "ZCN":
+		case "ZCS":
+			return 1_003L;
+		case "ZN":
+		case "ZNN":
+		case "ZNS":
+			return 1_014L;
 
 		}
 		return super.convertRouteIdFromShortNameNotSupported(routeShortName);
@@ -79,15 +79,20 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	public String getRouteShortName(@NotNull GRoute gRoute) {
 		//noinspection deprecation
 		final String routeId = gRoute.getRouteId();
-		switch(routeId) {
-			case "ZCN":
-			case "ZCS":
-				return "ZC";
-			case "ZNN":
-			case "ZNS":
-				return "ZN";
+		switch (routeId) {
+		case "ZCN":
+		case "ZCS":
+			return "ZC";
+		case "ZNN":
+		case "ZNS":
+			return "ZN";
 		}
 		throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
+	}
+
+	@Override
+	public boolean allowGTFSIdOverride() {
+		return true; // BREAKS GTFS-RT
 	}
 
 	@Override
