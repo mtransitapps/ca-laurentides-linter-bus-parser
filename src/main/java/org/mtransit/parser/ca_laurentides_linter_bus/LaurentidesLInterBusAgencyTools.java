@@ -91,8 +91,9 @@ public class LaurentidesLInterBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean allowGTFSIdOverride() {
-		return true; // BREAKS GTFS-RT
+	@Nullable
+	public String getRouteIdCleanupRegex() {
+		return "[N|S]$";
 	}
 
 	@Override
